@@ -24,8 +24,8 @@ if __name__ == "__main__":
     print(TestDF, TestDF.__name__, TestDF.__supertype__)
     print(TestDF.columns)
 
-    df = pd.DataFrame({'a': range(10)})
     with pyjviz.MethodsChain("c") as c:
+        df = pd.DataFrame({'a': range(10)})
         df1 = c.head(df).a0()
 
     print(df1)
