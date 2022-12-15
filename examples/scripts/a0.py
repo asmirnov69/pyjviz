@@ -2,7 +2,7 @@
 import janitor
 import pandas_flavor as pf
 import pyjviz
-import os.path
+import os.path, sys
 
 import typing
 import pandas as pd
@@ -17,9 +17,8 @@ def a0(df: pd.DataFrame) -> TestDF:
 
 if __name__ == "__main__":
     # configure pyjrdf
-    if 0:
-        rdflog_fn = pyjviz.get_rdflog_filename(sys.argv[0])
-        RDFLogger.init(rdflog_fn)
+    rdflog_fn = pyjviz.get_rdflog_filename(sys.argv[0])
+    pyjviz.RDFLogger.init(rdflog_fn)
 
     print(TestDF, TestDF.__name__, TestDF.__supertype__)
     print(TestDF.columns)
@@ -30,5 +29,4 @@ if __name__ == "__main__":
 
     print(df1)
 
-    if 0:
-        pyjviz.render_rdflog(rdflog_fn)
+    pyjviz.render_rdflog(rdflog_fn)

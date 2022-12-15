@@ -1,15 +1,14 @@
 #
 # example https://github.com/pyjanitor-devs/pyjanitor/blob/dev/examples/notebooks/conditional_join.ipynb
 #
+import sys
 import pandas as pd
 import janitor, pyjviz
-#from janitor.functions import *
 
 if __name__ == "__main__":
-    if 0:
-        # configure pyjrdf
-        rdflog_fn = pyjviz.get_rdflog_filename(sys.argv[0])
-        RDFLogger.init(rdflog_fn)
+    # configure pyjrdf
+    rdflog_fn = pyjviz.get_rdflog_filename(sys.argv[0])
+    pyjviz.RDFLogger.init(rdflog_fn)
 
     df1 = pd.DataFrame({'id': [1,1,1,2,2,3],
                         'value_1': [2,5,7,1,3,4]})
@@ -39,5 +38,4 @@ if __name__ == "__main__":
     print(res2)
     res2.describe()
 
-    if 0:
-        pyjviz.render_rdflog(rdflog_fn)
+    pyjviz.render_rdflog(rdflog_fn)

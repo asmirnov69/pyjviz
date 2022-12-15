@@ -1,3 +1,5 @@
+from . import rdflogging
+
 class CallWrapper:
     def __init__(self, parent_w, o, method_name, method_o):
         self.parent_w = parent_w
@@ -12,7 +14,32 @@ class CallWrapper:
             chained_call_name = self.parent_w.parent_mc.mc_name
             o_id = id(self.o)
             ret = self.method_o(*args, **kwargs)
-            print("__call__ ", chained_call_name, o_id, self.method_name, args, kwargs, id(ret))
+            ret_id = id(ret)            
+            print("__call__ ", chained_call_name, o_id, self.method_name, args, kwargs, ret_id)
+            
+            if rdflogging.rdflogger:
+                methods_chain_id = id(self.parent_w.parent_mc)
+                method_call_id = id(self)
+
+                o_uri = rdflogging.rdflogger.register_obj(o_id)
+                ret_uri = rdflogging.rdflogger.register_obj(ret_id)
+                methods_chain_uri = rdflogging.rdflogger.register_methods_chain(methods_chain_id)
+                method_call_uri = f"<pyjviz:MethodCall:{method_call_id}>"
+
+                rdflogging.rdflogger.dump_triple__(method_call_uri, "rdf:type", "<pyjviz:MethodCall>")
+                rdflogging.rdflogger.dump_triple__(method_call_uri, "rdf:label", f'"{self.method_name}"')
+                #rdflogging.rdflogger.dump_triple__(f"<pyjviz:method-call:{method_call_id}>", "<pyjviz:Thread>", f'"{get_thread_id()}"')
+                rdflogging.rdflogger.dump_triple__(method_call_uri, "<pyjviz:belongs-to-methods-chain>", methods_chain_uri)
+                rdflogging.rdflogger.dump_triple__(method_call_uri, "<pyjviz:method-call-arg0>", o_uri)
+                rdflogging.rdflogger.dump_triple__(method_call_uri, "<pyjviz:method-call-return>", ret_uri)
+
+                """
+                for arg in args:
+                    arg_id = id(arg)
+                    arg_uri = rdflogging.rdflogger.register_obj(arg_id)
+                    rdflogging.rdflogger.dump_triple__(method_call_uri, "rdf:type", "<pyjviz:MethodCall>")
+                """
+                
             ret = Wrapper(ret, self.parent_w.parent_mc)
         else:
             ret = Wrapper(self.method_o(*args, **kwargs), self.parent_w.parent_mc)
@@ -39,6 +66,9 @@ class MethodsChain:
         self.is_active = False
         self.mc_name = mc_name
 
+        if rdflogging.rdflogger:
+            rdflogging.rdflogger.dump_methods_chain_creation(id(self), mc_name)
+        
     def __enter__(self):
         self.is_active = True
         print(f"enter methods chain {self.mc_name}")

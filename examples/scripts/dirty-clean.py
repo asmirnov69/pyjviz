@@ -2,15 +2,15 @@
 # first example from https://github.com/samukweku/pyjanitor_presentation/blob/main/janitor/pyjanitor_PyData_Sydney.ipynb
 #
 
+import sys
 import pandas as pd
 import janitor
 import pyjviz
 
 if __name__ == "__main__":
-    if 0:
-        # configure pyjrdf
-        rdflog_fn = pyjviz.get_rdflog_filename(sys.argv[0])
-        RDFLogger.init(rdflog_fn)
+    # configure pyjrdf
+    rdflog_fn = pyjviz.get_rdflog_filename(sys.argv[0])
+    pyjviz.RDFLogger.init(rdflog_fn)
     
     if 1:
         url = "https://github.com/pyjanitor-devs/pyjanitor/blob/dev/examples/notebooks/dirty_data.xlsx?raw=true"
@@ -32,5 +32,4 @@ if __name__ == "__main__":
                  )
     print(clean)
 
-    if 0:
-        pyjviz.render_rdflog(rdflog_fn)
+    pyjviz.render_rdflog(rdflog_fn)
