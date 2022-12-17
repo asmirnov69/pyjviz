@@ -71,6 +71,7 @@ pn = "pyjanitor-helloworld"
 with MethodsChain(pn) as mc:
     df = (
         mc.head(pd.DataFrame.from_dict(company_sales))
+        #pd.DataFrame.from_dict(company_sales).head(mc)
         .remove_columns(["Company1"])
         .dropna(subset=["Company2", "Company3"])
         .rename_column("Company2", "Amazon")

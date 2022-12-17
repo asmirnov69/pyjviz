@@ -28,6 +28,7 @@ class RDFLogger:
         self.out_fd = open_pyjrdf_output__(out_filename)
         self.known_objs = {}
         self.known_methods_chains = {}
+        self.known_threads = {}
         self.random_id = 0 # should be better way
 
     def flush__(self):
@@ -40,11 +41,14 @@ class RDFLogger:
         self.dump_triple__(f"<pyjviz:{mc_id}>", "rdf:type", "<pyjviz:MethodsChain>")
         self.dump_triple__(f"<pyjviz:{mc_id}>", "rdf:label", f'"{mc_name}"')
 
-    def register_obj(self, obj_id):
+    def register_obj(self, obj):
+        obj_id = id(obj)
         obj_uri = None
         if not obj_id in self.known_objs:
             obj_uri = self.known_objs[obj_id] = f"<pyjviz:Obj:{obj_id}>"
             self.dump_triple__(obj_uri, "rdf:type", "<pyjviz:DataFrame>")
+            self.dump_triple__(obj_uri, "<pyjviz:df-shape>", f'"{obj.shape}"')
+            self.dump_triple__(obj_uri, "<pyjviz:df-columns>", '"' + f"{','.join(obj.columns)}" + '"')
         else:
             obj_uri = self.known_objs[obj_id]
         return obj_uri
@@ -57,6 +61,14 @@ class RDFLogger:
         else:
             methods_chain_uri = self.known_methods_chains[methods_chain_id]            
         return methods_chain_uri
+
+    def register_thread(self, thread_id):
+        if not thread_id in self.known_threads:            
+            thread_uri = self.known_threads[thread_id] = f"<pyjviz:Thread:{thread_id}>"
+            self.dump_triple__(thread_uri, "rdf:type", "<pyjviz:Thread>")
+        else:
+            thread_uri = self.known_threads[thread_id]
+        return thread_uri
     
     def get_cmc_uri__(self, cmc_name):
         if not cmc_name in self.known_cmcs:
