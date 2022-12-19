@@ -65,7 +65,7 @@ class Wrapper:
         o = self.__getattribute__('o')
         return str(o)
     
-class MethodsChain:
+class Chain:
     def __init__(self, mc_name):
         self.is_active = False
         self.mc_name = mc_name

@@ -20,7 +20,7 @@ if __name__ == "__main__":
         
     print(dirty)
 
-    with pyjviz.MethodsChain("from_dirty_to_clean") as c:
+    with pyjviz.Chain("from_dirty_to_clean") as c:
         clean = (c.head(dirty)
                  .clean_names()
                  .dropna(axis='columns', how='all')

@@ -38,7 +38,7 @@ class RDFLogger:
         print(subj, pred, obj, ".", file = self.out_fd)
 
     def dump_methods_chain_creation(self, mc_id, mc_name):
-        self.dump_triple__(f"<pyjviz:{mc_id}>", "rdf:type", "<pyjviz:MethodsChain>")
+        self.dump_triple__(f"<pyjviz:{mc_id}>", "rdf:type", "<pyjviz:Chain>")
         self.dump_triple__(f"<pyjviz:{mc_id}>", "rdf:label", f'"{mc_name}"')
 
     def register_obj(self, obj):
@@ -56,8 +56,8 @@ class RDFLogger:
     def register_methods_chain(self, methods_chain_id):        
         methods_chain_uri = None
         if not methods_chain_id in self.known_methods_chains:
-            methods_chain_uri = self.known_methods_chains[methods_chain_id] = f"<pyjviz:MethodsChain:{methods_chain_id}>"
-            self.dump_triple__(methods_chain_uri, "rdf:type", "<pyjviz:MethodsChain>")
+            methods_chain_uri = self.known_methods_chains[methods_chain_id] = f"<pyjviz:Chain:{methods_chain_id}>"
+            self.dump_triple__(methods_chain_uri, "rdf:type", "<pyjviz:Chain>")
         else:
             methods_chain_uri = self.known_methods_chains[methods_chain_id]            
         return methods_chain_uri
