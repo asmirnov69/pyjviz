@@ -2,89 +2,105 @@ import threading
 import pandas as pd
 from . import rdflogging
 
-class CallWrapper:
-    def __init__(self, parent_w, o, method_name, method_o):
-        self.thread_id = None
-        self.parent_w = parent_w
-        self.o = o        
+method_counter = 0
+
+class MethodCallWrapper:
+    def __init__(self, self_w, method_name, bound_method, method_call_chain, method_call_return_chain):
+        self.self_w = self_w
         self.method_name = method_name
-        self.method_o = method_o
+        self.bound_method = bound_method
+        self.method_call_chain = method_call_chain if method_call_chain else self.self_w.obj_chain
+        self.method_call_return_chain = method_call_return_chain if method_call_return_chain else self.self_w.obj_chain
 
-    def __call__(self, *method_args, **method_kwargs):
+    def __call__(self, *method_args_, **method_kwargs):
         #ipdb.set_trace()
-        mc_is_active = self.parent_w.parent_mc.is_active
-        if mc_is_active:
-            self.thread_id = threading.get_native_id()
-            chained_call_name = self.parent_w.parent_mc.mc_name
-            ret = self.method_o(*method_args, **method_kwargs)
-            #print("__call__ ", chained_call_name, o_id, self.method_name, args, kwargs, ret_id)
-            
+        chain_is_active = self.self_w.obj_chain.is_active
+        if chain_is_active:
+            thread_id = threading.get_native_id()
+
+            method_args = []
+            for m_arg in method_args_:
+                if isinstance(m_arg, ObjWrapper):
+                    method_args.append(m_arg.obj)
+                else:
+                    method_args.append(m_arg)
+                    
+            ret_obj = self.bound_method(*method_args, **method_kwargs)            
+
             if rdflogging.rdflogger:
-                methods_chain_id = id(self.parent_w.parent_mc)
-                method_call_id = id(self)
-
-                thread_uri = rdflogging.rdflogger.register_thread(self.thread_id)
-                o_uri = rdflogging.rdflogger.register_obj(self.o)
-                ret_uri = rdflogging.rdflogger.register_obj(ret)
-                methods_chain_uri = rdflogging.rdflogger.register_methods_chain(methods_chain_id)
+                if id(ret_obj) == id(self.self_w.obj):
+                    ret_obj = pd.DataFrame(self.self_w.obj)
+                rdfl = rdflogging.rdflogger
+                thread_uri = rdfl.register_thread(thread_id)
+                method_call_chain_uri = rdfl.register_chain(self.method_call_chain)
+                method_call_id = rdfl.random_id; rdfl.random_id += 1
                 method_call_uri = f"<pyjviz:MethodCall:{method_call_id}>"
-
-                rdflogging.rdflogger.dump_triple__(method_call_uri, "rdf:type", "<pyjviz:MethodCall>")
-                rdflogging.rdflogger.dump_triple__(method_call_uri, "rdf:label", f'"{self.method_name}"')
-                rdflogging.rdflogger.dump_triple__(method_call_uri, "<pyjviz:method-thread>", thread_uri)
-                rdflogging.rdflogger.dump_triple__(method_call_uri, "<pyjviz:belongs-to-methods-chain>", methods_chain_uri)
-                rdflogging.rdflogger.dump_triple__(method_call_uri, "<pyjviz:method-call-arg0>", o_uri)
-                rdflogging.rdflogger.dump_triple__(method_call_uri, "<pyjviz:method-call-return>", ret_uri)
+                
+                rdfl.dump_triple__(method_call_uri, "rdf:type", "<pyjviz:MethodCall>")
+                rdfl.dump_triple__(method_call_uri, "rdf:label", f'"{self.method_name}"')
+                rdfl.dump_triple__(method_call_uri, "<pyjviz:method-thread>", thread_uri)
+                global method_counter
+                rdfl.dump_triple__(method_call_uri, "<pyjviz:method-counter>", method_counter); method_counter += 1
+                rdfl.dump_triple__(method_call_uri, "<pyjviz:method-call-chain>", method_call_chain_uri)
+                pinned_arg0_uri = rdfl.register_pinned_obj_on_chain(self.self_w.obj, self.self_w.obj_chain)
+                rdfl.dump_triple__(method_call_uri, "<pyjviz:method-call-arg0>", pinned_arg0_uri)
+                pinned_ret_uri = rdfl.register_pinned_obj_on_chain(ret_obj, self.method_call_return_chain)
+                rdfl.dump_triple__(method_call_uri, "<pyjviz:method-call-return>", pinned_ret_uri)
 
                 c = 1
-                for arg in method_args:
-                    if isinstance(arg, pd.DataFrame):
-                        arg_id = id(arg)
-                        arg_uri = rdflogging.rdflogger.register_obj(arg)
-                        rdflogging.rdflogger.dump_triple__(method_call_uri, f"<pyjviz:method-call-arg{c}>", arg_uri)
+                for arg in method_args_:
+                    if isinstance(arg, ObjWrapper):
+                        arg_uri = rdfl.register_pinned_obj_on_chain(arg.obj, arg.obj_chain)
+                        rdfl.dump_triple__(method_call_uri, f"<pyjviz:method-call-arg{c}>", arg_uri)
                     c += 1
                 
-            ret = Wrapper(ret, self.parent_w.parent_mc)
+            ret = ObjWrapper(ret_obj, self.method_call_return_chain, None, None)
         else:
-            ret = Wrapper(self.method_o(*method_args, **method_kwargs), self.parent_w.parent_mc)
+            ret = ObjWrapper(self.bound_method(*method_args_, **method_kwargs), None, None, None)
             
         return ret
 
-class Wrapper:
-    def __init__(self, o, parent_mc):
-        self.o = o
-        self.parent_mc = parent_mc
-
-    def __getattr__(self, attr):
-        o = self.__getattribute__('o')
-        method_name = attr
-        method_o = getattr(o, method_name)
-        return CallWrapper(self, o, method_name, method_o)
+class ObjWrapper:
+    def __init__(self, obj, obj_chain, method_call_chain, method_call_return_chain):
+        self.obj = obj
+        self.obj_chain = obj_chain
+        self.method_call_chain = method_call_chain
+        self.method_call_return_chain = method_call_return_chain
 
     def __str__(self):
-        o = self.__getattribute__('o')
-        return str(o)
+        obj = self.__getattribute__('obj')
+        return str(obj)
+
+    def pin(self, obj_chain):
+        return ObjWrapper(self.obj, obj_chain, None, None)
+
+    def continue_at(self, method_call_chain, method_call_return_chain = None):
+        return ObjWrapper(self.obj, self.obj_chain, method_call_chain, method_call_return_chain)
+    
+    def __getattr__(self, attr):
+        obj = self.__getattribute__('obj')
+        method_name = attr
+        bound_method = getattr(obj, method_name)
+        return MethodCallWrapper(self, method_name, bound_method, self.method_call_chain, self.method_call_return_chain)
     
 class Chain:
-    def __init__(self, mc_name):
+    def __init__(self, chain_name, parent_chain = None):
         self.is_active = False
-        self.mc_name = mc_name
-
-        if rdflogging.rdflogger:
-            rdflogging.rdflogger.dump_methods_chain_creation(id(self), mc_name)
+        self.chain_name = chain_name
+        self.parent_chain = parent_chain
         
     def __enter__(self):
         self.is_active = True
-        print(f"enter methods chain {self.mc_name}")
+        print(f"enter chain {self.chain_name}")
         return self
 
     def __exit__(self, type, value, traceback):
         self.is_active = False
-        print(f"exit methods chain {self.mc_name}")
+        print(f"exit chain {self.chain_name}")
 
     def __del__(self):
-        print(f"deleting methods chain {self.mc_name} {id(self)}")
+        print(f"deleting chain {self.chain_name} {id(self)}")
         
-    def head(self, mc_head_obj):
-        print("head id:", id(mc_head_obj))
-        return Wrapper(mc_head_obj, self)
+    def pin(self, obj: object) -> ObjWrapper:
+        print(f"pin obj {id(obj)} to chain {self.chain_name}")
+        return ObjWrapper(obj, self, None, None)

@@ -21,7 +21,7 @@ if __name__ == "__main__":
     print(dirty)
 
     with pyjviz.Chain("from_dirty_to_clean") as c:
-        clean = (c.head(dirty)
+        clean = (c.pin(dirty)
                  .clean_names()
                  .dropna(axis='columns', how='all')
                  .dropna(axis='rows', how='all')

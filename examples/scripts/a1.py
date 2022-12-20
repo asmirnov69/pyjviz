@@ -13,7 +13,7 @@ TestDF.columns = ['a']
 @pf.register_dataframe_method
 def a0(df: pd.DataFrame) -> TestDF:
     print("a0")
-    return df
+    return pd.DataFrame(df)
 
 if __name__ == "__main__":
     # configure pyjrdf
@@ -26,7 +26,19 @@ if __name__ == "__main__":
     with pyjviz.Chain("c") as c:
         df = pd.DataFrame({'a': range(10)})
         df1 = c.pin(df).a0()
-
     print(df1.describe())
+        
+    with c:
+        df2 = c.pin(df).a0()
+    print(df2.describe())
+        
+    with c, pyjviz.Chain("c1") as c1:
+        df3 = c.pin(df).continue_at(c1).a0()
+        #df3 = df.pin(c).continue_at(c1).a0()
+    print(df3.describe())
+
+    with c, pyjviz.Chain("cc", c) as cc:
+        df4 = c.pin(df).continue_at(cc).a0()
+    print(df4.describe())
 
     pyjviz.render_rdflog(rdflog_fn)
