@@ -47,6 +47,7 @@ def dump_dot_code(g):
         }
         """
         for pinned_obj, obj, df_shape, df_cols in g.query(rq, initBindings = {'chain': chain}):
+            cols = "\n".join(['<tr><td align="left"><FONT POINT-SIZE="8px">' + html.escape(x) + "</FONT></td></tr>" for x in df_cols.toPython().split(",")])
             print(f"""
             node_{uri_to_dot_id(pinned_obj)} [
                 color="#88000022"
@@ -54,20 +55,23 @@ def dump_dot_code(g):
                 label = <<table border="0" cellborder="0" cellspacing="0" cellpadding="4">
                          <tr> <td> <b>{obj}</b><br/>{df_shape}</td> </tr>
                          <tr> <td align="left"><i>columns:</i><br align="left"/></td></tr>
-                <tr><td align="left"><FONT POINT-SIZE="8px">{df_cols}</FONT></td></tr>
+                {cols}
                          </table>>
                 ];
 
             """, file = out_fd)
 
         rq = """
-        select ?method_call_obj ?method_name ?chain { 
-          ?method_call_obj rdf:type <pyjviz:MethodCall>; rdf:label ?method_name; <pyjviz:method-call-chain> ?chain .
+        select ?method_call_obj ?method_name ?method_count ?chain { 
+          ?method_call_obj rdf:type <pyjviz:MethodCall>; 
+                           rdf:label ?method_name; 
+                           <pyjviz:method-counter> ?method_count;
+                           <pyjviz:method-call-chain> ?chain .
         }
         """
-        for method_call_obj, method_name, chain in g.query(rq, initBindings = {'chain': chain}):
+        for method_call_obj, method_name, method_count, chain in g.query(rq, initBindings = {'chain': chain}):
             print(f"""
-            node_{uri_to_dot_id(method_call_obj)} [ label = "{method_name}" ];
+            node_{uri_to_dot_id(method_call_obj)} [ label = "{method_name}#{method_count}" ];
             """, file = out_fd)
 
     for chain, chain_label in chains:

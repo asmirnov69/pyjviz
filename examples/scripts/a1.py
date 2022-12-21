@@ -15,6 +15,10 @@ def a0(df: pd.DataFrame) -> TestDF:
     print("a0")
     return pd.DataFrame(df)
 
+@pf.register_dataframe_method
+def a2(df: pd.DataFrame) -> TestDF:
+    return df.a0().a0()
+
 if __name__ == "__main__":
     # configure pyjrdf
     rdflog_fn = pyjviz.get_rdflog_filename(sys.argv[0])
@@ -33,12 +37,13 @@ if __name__ == "__main__":
     print(df2.describe())
         
     with c, pyjviz.Chain("c1") as c1:
-        df3 = c.pin(df).continue_at(c1).a0()
-        #df3 = df.pin(c).continue_at(c1).a0()
+        df3 = c.pin(df).continue_to(c1).a0()
+        #df3 = df.pin(c).continue_to(c1).a0()
     print(df3.describe())
 
-    with c, pyjviz.Chain("cc", c) as cc:
-        df4 = c.pin(df).continue_at(cc).a0()
-    print(df4.describe())
+    if 0:
+        with c, pyjviz.Chain("cc", c) as cc:
+            df4 = c.pin(df).continue_to(cc).a0().a0().a2().return_to(c)
+        print(df4.describe())
 
     pyjviz.render_rdflog(rdflog_fn)
