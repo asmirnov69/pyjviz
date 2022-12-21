@@ -41,9 +41,13 @@ if __name__ == "__main__":
         #df3 = df.pin(c).continue_to(c1).a0()
     print(df3.describe())
 
-    if 0:
-        with c, pyjviz.Chain("cc", c) as cc:
-            df4 = c.pin(df).continue_to(cc).a0().a0().a2().return_to(c)
-        print(df4.describe())
+    with c, pyjviz.Chain("cc", c) as cc:
+        df4 = c.pin(df).continue_to(cc).a0().a0().a2()
+    print(df4.describe())
 
+    with c, pyjviz.Chain("cc1") as cc:
+        df5 = c.pin(df).continue_to(cc).a0().a0().a2().return_to(c)
+    print(df5.describe())
+
+    
     pyjviz.render_rdflog(rdflog_fn)

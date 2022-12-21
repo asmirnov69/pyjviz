@@ -18,7 +18,7 @@ def uri_to_dot_id(uri):
     return str(hash(uri)).replace("-", "d")
 
 def dump_dot_code(g):
-    ipdb.set_trace()
+    #ipdb.set_trace()
     chains = [r for r in g.query("select ?pp ?pl { ?pp rdf:type <pyjviz:Chain>; rdf:label ?pl }")]
 
     out_fd = StringIO()
@@ -38,11 +38,32 @@ def dump_dot_code(g):
     """, file = out_fd)
     #print('rankdir = "TB"', file = out_fd)
 
-    ipdb.set_trace()
+    #ipdb.set_trace()
     for chain, chain_label in chains:
+        print(f"""
+        subgraph cluster_{uri_to_dot_id(chain)} {{
+          label = "{chain_label}";
+        """, file = out_fd)
+
+        if 0:
+            test_rq = """
+            select ?pinned_obj ?obj ?orig_chain ?chain_decision ?chain { 
+            ?pinned_obj rdf:type <pyjviz:ObjOnChain>; <pyjviz:pinned_obj> ?obj .
+            ?pinned_obj <pyjviz:chain> ?orig_chain .
+            optional { ?pinned_obj <pyjviz:chain-replacement> ?repl_chain }
+            bind(if(bound(?repl_chain), ?repl_chain, ?orig_chain) as ?chain_decision)
+            filter( ?chain_decision = ?chain ) .
+            }
+            """
+            for l in g.query(test_rq, initBindings = {'chain': chain}):
+                print(l)        
+        
         rq = """
         select ?pinned_obj ?obj ?df_shape ?df_cols { 
-          ?pinned_obj rdf:type <pyjviz:ObjOnChain>; <pyjviz:chain> ?chain; <pyjviz:pinned_obj> ?obj .
+          ?pinned_obj rdf:type <pyjviz:ObjOnChain>; <pyjviz:pinned_obj> ?obj .
+          ?pinned_obj <pyjviz:chain> ?orig_chain .
+          optional { ?pinned_obj <pyjviz:chain-replacement> ?repl_chain }
+          filter(if(bound(?repl_chain), ?repl_chain, ?orig_chain) = ?chain ) .
           ?obj <pyjviz:df-shape> ?df_shape; <pyjviz:df-columns> ?df_cols .
         }
         """
@@ -74,26 +95,30 @@ def dump_dot_code(g):
             node_{uri_to_dot_id(method_call_obj)} [ label = "{method_name}#{method_count}" ];
             """, file = out_fd)
 
+        print(f"}}", file = out_fd)
+            
+            
     for chain, chain_label in chains:
-        print(f"""
-        subgraph cluster_{uri_to_dot_id(chain)} {{
-          label = "{chain_label}";
-        """, file = out_fd)
-
+        #ipdb.set_trace()
         rq = """
-        select ?method_call_obj ?caller_obj ?ret_obj { 
+        select ?method_call_obj ?caller_obj ?ret_obj ?arg1_obj { 
           ?method_call_obj rdf:type <pyjviz:MethodCall>; <pyjviz:method-call-chain> ?chain;
                            <pyjviz:method-call-arg0> ?caller_obj;
                            <pyjviz:method-call-return> ?ret_obj .
+          optional { ?method_call_obj <pyjviz:method-call-arg1> ?arg1_obj }
         }
         """
-        for method_call_obj, caller_obj, ret_obj in g.query(rq, initBindings = {'chain': chain}):
+        for method_call_obj, caller_obj, ret_obj, arg1_obj in g.query(rq, initBindings = {'chain': chain}):
             print(f"""
             node_{uri_to_dot_id(caller_obj)} -> node_{uri_to_dot_id(method_call_obj)};
             node_{uri_to_dot_id(method_call_obj)} -> node_{uri_to_dot_id(ret_obj)};
             """, file = out_fd)
+            if arg1_obj:
+                print(f"""
+                node_{uri_to_dot_id(arg1_obj)} -> node_{uri_to_dot_id(method_call_obj)};
+                """, file = out_fd)
+                
 
-        print(f"}}", file = out_fd)
             
     print("}", file = out_fd)
     return out_fd.getvalue()
