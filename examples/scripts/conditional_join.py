@@ -6,7 +6,7 @@ import pandas as pd
 import janitor, pyjviz
 
 if __name__ == "__main__":
-    # configure pyjrdf
+    # configure pyjviz
     rdflog_fn = pyjviz.get_rdflog_filename(sys.argv[0])
     pyjviz.RDFLogger.init(rdflog_fn)
 
@@ -30,8 +30,7 @@ if __name__ == "__main__":
     with c1:
         with pyjviz.Chain("c2", c1) as c2:
             res2 = c1.pin(df1).select_columns('value_1').conditional_join(
-                c2.pin(df2).select_columns('val*'), # -- this doesn't work because we need to convert wrapped df to normal in CallWrapper
-                #df2.select_columns('val*'),
+                c2.pin(df2).select_columns('val*'), # someday soon this line should work - df2.pin(c2).select_columns('val*'),
                 ('value_1', 'value_2A', '>'),
                 ('value_1', 'value_2B', '<'),
             )
